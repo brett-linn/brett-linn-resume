@@ -10,8 +10,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: Calm Harmony (Warm Neutrals with Deep Blue Accent) -->
-    <!-- Application Structure Plan: A single-page dashboard with a top navigation, an interactive key metrics panel, a clickable career timeline, a filterable skills section, and a new AI-powered resume alignment tool. This structure allows non-linear exploration of a dense career history, enabling recruiters to quickly find relevant information. The dashboard provides an immediate summary of impact, while the timeline and skills filters allow for deeper, targeted dives into specific areas of expertise. The AI tool adds a direct utility for job application tailoring. -->
-    <!-- Visualization & Content Choices: Key Metrics -> Goal: Inform -> Dynamic Stat Cards (HTML/CSS) -> Interaction: Click to filter achievements -> Justification: Immediate high-level impact. Career Progression -> Goal: Organize/Change -> Horizontal Timeline (HTML/CSS) -> Interaction: Click to display details -> Justification: Visualizes career path better than a list. Skill Distribution -> Goal: Inform -> Donut Chart (Chart.js) -> Interaction: Hover -> Justification: Shows breadth of experience quickly. AI Alignment Tool -> Goal: Tailor/Analyze -> Text Input, Button, Text Output (HTML/JS) -> Interaction: User input JD, Click to generate analysis -> Justification: Provides direct, actionable feedback on resume fit using LLM capabilities. CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <!-- Application Structure Plan: A single-page dashboard with a top navigation, an interactive key metrics panel, a clickable career timeline, a filterable skills section, and a new AI-powered resume alignment tool. This structure allows non-linear exploration of a dense career history, enabling recruiters to quickly find relevant information. The dashboard provides an immediate summary of impact, while the timeline and skills filters allow for deeper, targeted dives into specific areas of expertise. The AI tool adds a direct utility for job application tailoring. New sections for Industries Impacted and Key Clients & Partnerships provide additional context and credibility. The 'Skills' section is now expanded to explicitly link professional competencies with inherent personality traits. -->
+    <!-- Visualization & Content Choices: Key Metrics -> Goal: Inform -> Dynamic Stat Cards (HTML/CSS) -> Interaction: Click to filter achievements -> Justification: Immediate high-level impact. Career Progression -> Goal: Organize/Change -> Horizontal Timeline (HTML/CSS) -> Interaction: Click to display details -> Justification: Visualizes career path better than a list. Skill Distribution -> Goal: Inform -> Donut Chart (Chart.js) -> Interaction: Hover -> Justification: Shows breadth of experience quickly. AI Alignment Tool -> Goal: Tailor/Analyze -> Text Input, Button, Text Output (HTML/JS) -> Interaction: User input JD, Click to generate analysis -> Justification: Provides direct, actionable feedback on resume fit using LLM capabilities. Industries Impacted -> Goal: Inform -> Tag Cloud (HTML/CSS) -> Justification: Quick visual summary of domain expertise. Key Clients & Partnerships -> Goal: Inform -> List/Cards (HTML/CSS) -> Justification: Demonstrates credibility and experience with major players. CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -52,19 +52,29 @@
             color: #1e40af; /* blue-800 */
             font-weight: 600;
         }
-        .chart-container {
+        .skills-chart-wrapper {
             position: relative;
-            width: 100%;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
+            width: 100%; /* Default for small screens */
+            max-width: 600px; /* Max width for chart */
             height: 350px;
             max-height: 400px;
+            margin-left: auto; /* Center on small screens */
+            margin-right: auto; /* Center on small screens */
+            margin-bottom: 1rem; /* Space below chart on small screens */
         }
         @media (min-width: 768px) {
-            .chart-container {
-                height: 400px;
+            .skills-chart-wrapper {
+                float: left;
+                margin-right: 1.5rem; /* mr-6 */
+                margin-bottom: 1rem; /* mb-4 */
+                max-width: 400px; /* Smaller when floated */
+                margin-left: 0; /* Remove auto margins when floated */
             }
+        }
+        .clearfix::after {
+            content: "";
+            display: table;
+            clear: both;
         }
         .loading-spinner {
             border: 4px solid #f3f3f3;
@@ -91,6 +101,8 @@
             <nav class="hidden md:flex space-x-6">
                 <a href="#dashboard" class="text-slate-600 hover:text-blue-600 font-medium">Dashboard</a>
                 <a href="#career" class="text-slate-600 hover:text-blue-600 font-medium">Career Path</a>
+                <a href="#industries" class="text-slate-600 hover:text-blue-600 font-medium">Industries</a>
+                <a href="#clients" class="text-slate-600 hover:text-blue-600 font-medium">Clients</a>
                 <a href="#skills" class="text-slate-600 hover:text-blue-600 font-medium">Skills</a>
                 <a href="#ai-alignment" class="text-slate-600 hover:text-blue-600 font-medium">AI Alignment</a>
             </nav>
@@ -132,6 +144,7 @@
 
         <section id="career" class="mb-12">
              <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Career Path & Achievements</h2>
+             <p class="text-lg text-slate-600 mb-6 leading-relaxed text-center">My career is marked by a consistent ability to **go above and beyond** core responsibilities, driving significant impact through proactive leadership, strategic initiatives, and operational excellence. Explore my professional journey and key contributions below.</p>
             <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
                 <div id="timeline-container" class="md:col-span-4">
                     <!-- Timeline will be generated by JS -->
@@ -145,24 +158,48 @@
             </div>
         </section>
 
+        <section id="industries" class="bg-white p-8 rounded-xl shadow-lg border border-slate-200 mb-12">
+            <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Industries Impacted</h2>
+            <p class="text-lg text-slate-600 mb-6 leading-relaxed text-center">My expertise spans a diverse range of industries, allowing me to quickly understand unique market dynamics and deliver tailored solutions.</p>
+            <div id="industries-list" class="flex flex-wrap justify-center gap-3">
+                <!-- Industries will be generated by JS -->
+            </div>
+        </section>
+
+        <section id="clients" class="bg-white p-8 rounded-xl shadow-lg border border-slate-200 mb-12">
+            <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Key Clients & Partnerships</h2>
+            <p class="text-lg text-slate-600 mb-6 leading-relaxed text-center">I have built and nurtured relationships with leading organizations and strategic partners across various sectors, driving mutual success.</p>
+            <div id="clients-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <!-- Clients will be generated by JS -->
+            </div>
+        </section>
+
         <section id="skills" class="bg-white p-8 rounded-xl shadow-lg border border-slate-200 mb-12">
-            <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Core Competencies & Skill Distribution</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                <div class="chart-container">
+            <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Core Competencies & Driving Traits</h2>
+            <div class="clearfix">
+                <div class="skills-chart-wrapper">
                     <canvas id="skillsChart"></canvas>
                 </div>
-                <div>
-                     <p class="text-lg text-slate-600 mb-6 leading-relaxed">My career blends deep expertise across four key domains. This visualization illustrates the balance between direct sales, strategic operations, channel development, and financial leadership, showcasing a comprehensive and versatile skill set ready to tackle complex business challenges.</p>
-                     <div class="flex flex-wrap gap-3 justify-center">
-                        <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Revenue Growth</span>
-                        <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Operational Efficiency</span>
-                        <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Strategic Planning</span>
-                        <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">SaaS Sales</span>
-                        <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Channel Development</span>
-                        <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Financial Analysis</span>
-                        <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Startup Scaling</span>
-                     </div>
-                </div>
+                <p class="text-lg text-slate-600 mb-4 leading-relaxed">
+                    My career success is fueled by a powerful synergy between honed professional competencies and inherent personality traits. This visualization highlights my core domains, while the details below illustrate how my strategic, decisive, and adaptable nature consistently drives exceptional results.
+                </p>
+                <p class="text-lg text-slate-600 mb-6 leading-relaxed">
+                    As an ENTJ, I embody natural leadership, strategic foresight, and a relentless drive for achievement. My highly logical and agile thinking allows me to dissect complex business problems and engineer efficient solutions. This is coupled with a strong inner drive and high conscientiousness, ensuring meticulous execution and consistent quota overachievement. My adaptability and intellectual curiosity enable rapid learning and seamless navigation of fast-changing markets and technical products. Even under pressure, my composure and emotional stability ensure clear decision-making and resilience, while my sociable and assertive nature fosters strong C-level relationships and cross-functional influence.
+                </p>
+            </div>
+            <div class="flex flex-wrap gap-3 justify-center md:justify-start mt-4">
+                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Strategic Leadership</span>
+                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Revenue Growth & Sales Strategy</span>
+                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Operational Efficiency & Process Optimization</span>
+                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Channel & Partner Development</span>
+                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Financial Analysis & Business Acumen</span>
+                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Complex Deal Negotiation</span>
+                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Data-Driven Decision Making</span>
+                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Startup Scaling & Infrastructure Build</span>
+                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Cross-Functional Influence</span>
+                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">CRM & Sales Tech Implementation</span>
+                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Market & Territory Expansion</span>
+                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Client Retention & Expansion</span>
             </div>
         </section>
 
@@ -285,6 +322,23 @@
             }
         };
 
+        // Data for new sections
+        const industries = [
+            "SaaS", "Value-Added Resellers (VAR)", "Retail", "Manufacturing", "Marketing",
+            "Foodservice & Hospitality", "Logistics", "Cybersecurity", "Managed IT Services (MSP)",
+            "Cloud Migrations", "HR & Workforce Management", "Customer Intelligence", "Inventory Management",
+            "Financial Services", "Consumer Packaged Goods (CPG)"
+        ];
+
+        const clientsAndPartners = [
+            "Kum & Go", "Mooyah", "Fazoli’s", "Taco John’s", "Sprinkles Cupcakes", "Bluestone Lane",
+            "The Cheesecake Factory", "Noodles & Co.", "Boston Market", "McDonald’s", "Taco Bell",
+            "Smashburger", "Whole Foods", "The Finish Line", "Compass USA Group", "Aramark", "Domino’s",
+            "Sysco", "Shamrock", "US Foods", "Guckenheimer", "Thomas Cuisine Management", "Costco",
+            "Kroger Brands", "Albertsons", "Harris Teeter", "Target"
+        ];
+
+
         function getConciseResumeText() {
             let text = "Brett Linn's Resume Summary:\n";
             text += "Highly accomplished Senior Executive with over 20 years in leadership, sales, operations, financial analysis, and strategic planning. Proven expertise in driving revenue growth, optimizing performance, and executing market expansion.\n\n";
@@ -315,6 +369,9 @@
             const analyzeButton = document.getElementById('analyzeButton');
             const loadingIndicator = document.getElementById('loadingIndicator');
             const alignmentResult = document.getElementById('alignmentResult');
+            const industriesListContainer = document.getElementById('industries-list');
+            const clientsListContainer = document.getElementById('clients-list');
+
 
             const companies = Object.keys(resumeData);
 
@@ -413,6 +470,23 @@
                     cutout: '60%'
                 }
             });
+
+            // Populate Industries
+            industries.forEach(industry => {
+                const span = document.createElement('span');
+                span.className = 'bg-slate-100 text-slate-700 text-sm font-medium px-4 py-2 rounded-full shadow-sm hover:bg-slate-200 transition-colors duration-150';
+                span.textContent = industry;
+                industriesListContainer.appendChild(span);
+            });
+
+            // Populate Clients
+            clientsAndPartners.forEach(client => {
+                const div = document.createElement('div');
+                div.className = 'bg-slate-50 p-4 rounded-lg shadow-sm border border-slate-200 text-center font-medium text-slate-700 hover:bg-slate-100 transition-colors duration-150';
+                div.textContent = client;
+                clientsListContainer.appendChild(div);
+            });
+
 
             // LLM Integration
             analyzeButton.addEventListener('click', async () => {
