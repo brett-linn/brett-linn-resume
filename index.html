@@ -97,6 +97,10 @@
             <div>
                 <h1 class="text-2xl font-bold text-slate-800">Brett Linn</h1>
                 <p class="text-slate-500">Senior Executive | Strategic Business Partner</p>
+                <p class="text-sm text-slate-400">
+                    <a href="mailto:brett.linn@gmail.com" class="hover:text-blue-600">brett.linn@gmail.com</a> |
+                    <a href="https://linkedin.com/in/brettlinn" target="_blank" rel="noopener noreferrer" class="hover:text-blue-600">linkedin.com/in/brettlinn</a>
+                </p>
             </div>
             <nav class="hidden md:flex space-x-6">
                 <a href="#dashboard" class="text-slate-600 hover:text-blue-600 font-medium">Dashboard</a>
@@ -125,7 +129,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div class="metric-card bg-white p-6 rounded-xl shadow-lg border border-slate-200 text-center">
                     <p class="text-4xl font-extrabold text-blue-600">$0 → $2M</p>
-                    <p class="text-slate-500 mt-2 font-medium">Startup ARR Growth in <18 Months</p>
+                    <p class="text-slate-500 mt-2 font-medium">Profitable Startup Growth <br/> (in <18 Months)</p>
                 </div>
                 <div class="metric-card bg-white p-6 rounded-xl shadow-lg border border-slate-200 text-center">
                     <p class="text-4xl font-extrabold text-blue-600">98.7%</p>
@@ -511,7 +515,7 @@ Analysis:`;
                 let chatHistory = [];
                 chatHistory.push({ role: "user", parts: [{ text: prompt }] });
                 const payload = { contents: chatHistory };
-                const apiKey = "";
+                const apiKey = "AIzaSyBrTmBYEvvg5-xvDfDi14xM14u3hhg-fi4";
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
                 let retries = 0;
@@ -542,7 +546,8 @@ Analysis:`;
                             alignmentResult.textContent = "Could not generate analysis. Please try again.";
                         }
                         break; // Exit loop on success
-                    } catch (error) {
+                    }
+                    catch (error) {
                         retries++;
                         if (retries === maxRetries) {
                             alignmentResult.textContent = "An error occurred during analysis. Please try again later.";
