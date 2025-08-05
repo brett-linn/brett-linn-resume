@@ -1,427 +1,175 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Resume | Brett Linn</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Chosen Palette: Calm Harmony (Warm Neutrals with Deep Blue Accent) -->
-    <!-- Application Structure Plan: A single-page dashboard with a top navigation, an interactive key metrics panel, a clickable career timeline, a filterable skills section, and a new AI-powered resume alignment tool. This structure allows non-linear exploration of a dense career history, enabling recruiters to quickly find relevant information. The dashboard provides an immediate summary of impact, while the timeline and skills filters allow for deeper, targeted dives into specific areas of expertise. The AI tool adds a direct utility for job application tailoring. New sections for Industries Impacted and Key Clients & Partnerships provide additional context and credibility. The 'Skills' section is now expanded to explicitly link professional competencies with inherent personality traits. -->
-    <!-- Visualization & Content Choices: Key Metrics -> Goal: Inform -> Dynamic Stat Cards (HTML/CSS) -> Interaction: Click to filter achievements -> Justification: Immediate high-level impact. Career Progression -> Goal: Organize/Change -> Horizontal Timeline (HTML/CSS) -> Interaction: Click to display details -> Justification: Visualizes career path better than a list. Skill Distribution -> Goal: Inform -> Donut Chart (Chart.js) -> Interaction: Hover -> Justification: Shows breadth of experience quickly. AI Alignment Tool -> Goal: Tailor/Analyze -> Text Input, Button, Text Output (HTML/JS) -> Interaction: User input JD, Click to generate analysis -> Justification: Provides direct, actionable feedback on resume fit using LLM capabilities. Industries Impacted -> Goal: Inform -> Tag Cloud (HTML/CSS) -> Justification: Quick visual summary of domain expertise. Key Clients & Partnerships -> Goal: Inform -> List/Cards (HTML/CSS) -> Justification: Demonstrates credibility and experience with major players. CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc; /* slate-50 */
-        }
-        .metric-card {
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-        }
-        .metric-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-        .timeline-item {
-            position: relative;
-            padding-left: 2rem;
-            padding-bottom: 2rem;
-            border-left: 2px solid #e2e8f0; /* slate-200 */
-        }
-        .timeline-item:last-child {
-            border-left: 2px solid transparent;
-            padding-bottom: 0;
-        }
-        .timeline-dot {
-            position: absolute;
-            left: -0.5rem;
-            top: 0.25rem;
-            height: 1rem;
-            width: 1rem;
-            border-radius: 9999px;
-            background-color: #cbd5e1; /* slate-300 */
-            border: 2px solid white;
-            transition: background-color 0.2s ease-in-out;
-        }
-        .timeline-item.active .timeline-dot {
-            background-color: #3b82f6; /* blue-500 */
-        }
-        .timeline-item.active .company-name {
-            color: #1e40af; /* blue-800 */
-            font-weight: 600;
-        }
-        .skills-chart-wrapper {
-            position: relative;
-            width: 100%; /* Default for small screens */
-            max-width: 600px; /* Max width for chart */
-            height: 350px;
-            max-height: 400px;
-            margin-left: auto; /* Center on small screens */
-            margin-right: auto; /* Center on small screens */
-            margin-bottom: 1rem; /* Space below chart on small screens */
-        }
-        @media (min-width: 768px) {
-            .skills-chart-wrapper {
-                float: left;
-                margin-right: 1.5rem; /* mr-6 */
-                margin-bottom: 1rem; /* mb-4 */
-                max-width: 400px; /* Smaller when floated */
-                margin-left: 0; /* Remove auto margins when floated */
-            }
-        }
-        .clearfix::after {
-            content: "";
-            display: table;
-            clear: both;
-        }
-        .loading-spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3b82f6;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
-</head>
-<body class="text-slate-700">
+import React, { useState, useEffect } from 'react';
+import Chart from 'chart.js/auto';
 
-    <header class="bg-white shadow-sm sticky top-0 z-10">
-        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <div>
-                <h1 class="text-2xl font-bold text-slate-800">Brett Linn</h1>
-                <p class="text-slate-500">Senior Executive | Strategic Business Partner</p>
-                <p class="text-sm text-slate-400">
-                    <a href="mailto:brett.linn@gmail.com" class="hover:text-blue-600">brett.linn@gmail.com</a> |
-                    <a href="https://linkedin.com/in/brettlinn" target="_blank" rel="noopener noreferrer" class="hover:text-blue-600">linkedin.com/in/brettlinn</a>
-                </p>
-            </div>
-            <nav class="hidden md:flex space-x-6">
-                <a href="#dashboard" class="text-slate-600 hover:text-blue-600 font-medium">Dashboard</a>
-                <a href="#career" class="text-slate-600 hover:text-blue-600 font-medium">Career Path</a>
-                <a href="#industries" class="text-slate-600 hover:text-blue-600 font-medium">Industries</a>
-                <a href="#clients" class="text-slate-600 hover:text-blue-600 font-medium">Clients</a>
-                <a href="#skills" class="text-slate-600 hover:text-blue-600 font-medium">Skills</a>
-                <a href="#ai-alignment" class="text-slate-600 hover:text-blue-600 font-medium">AI Alignment</a>
-            </nav>
-        </div>
-    </header>
+const resumeData = {
+    "The Hinesight Group": {
+        role: "Managing Partner & Fractional CFO",
+        dates: "07/2022-Present",
+        achievements: [
+            "Provided management consulting services to clients across diverse industries, applying a proprietary <strong>5-Lens Approach</strong> to diagnose challenges and execute strategic objectives.",
+            "Led a fractional executive role at Pro Cloud SaaS, a startup channel software reseller. Grew the company from <strong>$0 to $2M in ARR in the first year</strong> (less than 18 months), achieving profitability and building all foundational business infrastructure.",
+            "Managed accounting operations, transitioned software, ensured GAAP compliance, handled payroll, and oversaw AP/AR for 2 employees.",
+            "Built all KPIs, investor reports, revenue/profit models, and sales commission plans.",
+            "Spearheaded HubSpot CRM build-out for sales operations, ensuring insightful reporting and department-specific dashboards.",
+            "Raised over <strong>$400K through angel investors</strong> by building compelling decks and financial models.",
+            "Conducted in-depth financial and operational analyses for a boutique retail furniture company, which led to a <strong>12% inventory reduction ($100K savings) and $50K in credit card processing cost reductions</strong>.",
+            "Restructured a print marketing and manufacturing organization, increasing <strong>revenue per order by 39% and margin by 23%</strong> in under 6 months through ERP analysis and KPI dashboard implementation."
+        ]
+    },
+    "Bite": {
+        role: "Account Manager",
+        dates: "09/2020-07/2022",
+        achievements: [
+            "Managed a <strong>$1M ARR portfolio</strong> of existing clients, achieving a <strong>98.7% retention rate</strong> over 2 years. Grew the account base by <strong>30%</strong> through expansion efforts and drove client implementation from pilot to launch to expansion and renewals.",
+            "Built an ROI calculator to demonstrate a <strong>20% increase in digital ordering</strong> vs. cashier, driving adoption and value.",
+            "Built and maintained company dashboards in Salesforce for C-suite, and executed booked revenue vs. recognized revenue analysis, finding a discrepancy resulting in <strong>under-billing by $5K per month</strong>; automated the process moving forward.",
+            "Mentored and managed 2 BDR reps, implementing team-building techniques that enhanced booked meetings by <strong>7.3% within 3 months</strong> through collaborative learning."
+        ]
+    },
+    "Wisely": {
+        role: "Enterprise Sales Executive & Lead",
+        dates: "11/2018-06/2019",
+        achievements: [
+            "Exceeded revenue targets, achieving <strong>101% of sales quota within 10 months</strong> by strategically targeting new business in the hospitality market.",
+            "Launched CRM (Salesforce) by creating a system hierarchy and sales methodology. Implemented Conversational Intelligence Tool – Gong.io to assist and review sales calls.",
+            "Closed the <strong>2nd largest deal in company history</strong> in the first 90 days.",
+            "Created the on-boarding process for new sales reps and reduced ramp time by <strong>4 weeks</strong>.",
+            "Developed and implemented pilot & rollout process, leading to a <strong>10% reduction in customer churn</strong>."
+        ]
+    },
+    "Harri": {
+        role: "Enterprise Sales Executive",
+        dates: "03/2018-11/2018",
+        achievements: [
+            "Executed a strategic market entry plan to establish a <strong>25-state territory</strong> by prospecting and managing Total Available Market vs. Serviceable Available Market vs. Serviceable Obtainable Market.",
+            "Prospected and gained meetings with key targets – The Cheesecake Factory, Noodles & Co., and Boston Market resulting in <strong>2 RFPs</strong>.",
+            "Was the only sales rep (of 10) to work with marketing to create more efficient content and messaging."
+        ]
+    },
+    "Synergy Suite": {
+        role: "Strategic Sales Executive",
+        dates: "11/2017-03/2018",
+        achievements: [
+            "Built out territory alignments and identified key prospects by reviewing total available markets vs. serviceable attainable markets.",
+            "Put a heavy emphasis on top-of-funnel sales prospecting building out over <strong>$250K in pipeline in 5 months</strong>."
+        ]
+    },
+    "Fourth (formerly HotSchedules)": {
+        role: "Senior Enterprise & Mid-Market Lead Executive",
+        dates: "01/2014-11/2017",
+        achievements: [
+            "Exceeded <strong>105% of revenue targets for 3 consecutive years</strong>, selling over <strong>$1M in annual recurring revenue</strong>, with new logo acquisition comprising 80% of quota and expansion the remaining 20%.",
+            "Won <strong>President's Club (2015)</strong> and <strong>Company MVP (2016)</strong> awards in recognition of outstanding sales performance.",
+            "Promoted to Sr. Lead Exec in 18 months.",
+            "Collaborated with product teams and customer feedback to design and launch new software, generating <strong>$100K in new annual recurring revenue</strong>.",
+            "Designed territories for our sales team and built out quotas for new products."
+        ]
+    },
+    "The Original Cakerie": {
+        role: "Regional Channel Manager",
+        dates: "10/2012-08/2013",
+        achievements: [
+            "Spearheaded strategic market entry into the U.S. foodservice market as a Channel Manager, transitioning to a regional/national partner model and developing a go-to-market plan that resulted in <strong>97% of plan execution</strong>.",
+            "Trained and assisted partners in an 18-state territory on nuances and differentiators of dessert lines.",
+            "Negotiated marketing programs and SKU placements with distributors (Sysco, Shamrock, US Foods).",
+        ]
+    },
+    "Aryzta, LLC": {
+        role: "Sr. Strategy Analyst; Regional Channel Manager",
+        dates: "11/2007-10/2012",
+        achievements: [
+            "Promoted twice from Sales Strategy Analyst to Regional Channel Manager, demonstrating rapid career progression.",
+            "As Sr. Strategy Analyst, was responsible for strategic pricing, budgeting, and production forecasting for La Brea Bakery bread, ensuring <strong>20% company growth YOY</strong> while maintaining profit strategy. Received the <strong>2010 La Brea Bakery Employee of the Year</strong> award.",
+            "As Regional Channel Manager (Foodservice), achieved <strong>108% of forecast in the first year</strong> and placed <strong>2nd out of 50 markets</strong> for a new product launch.",
+            "Transitioned to the Retail Grocery Team, leading success at Target with new product placement, resulting in <strong>112% of forecast in 2012</strong>."
+        ]
+    },
+    "AIT Worldwide Logistics": {
+        role: "Accounts Payable; Financial Analyst",
+        dates: "01/2005-10/2007",
+        achievements: [
+            "Promoted to Financial Analyst after 12 months in Accounts Payable.",
+            "Implemented the state-of-the-art Concur expense reporting system for over 50 employees, reducing time to payment by <strong>over a month</strong>, cutting administrative entry, and streamlining the process.",
+            "Served as one of five members on the AIT Station Team, providing in-depth financial analysis and performance communications to franchisees.",
+            "Was responsible for financial reporting and month-end close for 12+ locations and the corporate office."
+        ]
+    }
+};
 
-    <main class="container mx-auto px-6 py-8 md:py-12">
+const industries = [
+    "SaaS", "Value-Added Resellers (VAR)", "Retail", "Manufacturing", "Marketing",
+    "Foodservice & Hospitality", "Logistics", "Cybersecurity", "Managed IT Services (MSP)",
+    "Cloud Migrations", "HR & Workforce Management", "Customer Intelligence", "Inventory Management",
+    "Financial Services", "Consumer Packaged Goods (CPG)"
+];
 
-        <section id="summary" class="mb-12">
-            <div class="bg-white p-8 rounded-xl shadow-lg border border-slate-200">
-                <h2 class="text-3xl font-bold text-slate-800 mb-4">Professional Summary</h2>
-                <p class="text-lg text-slate-600 leading-relaxed">
-                    Highly accomplished and results-driven Senior Executive with over 20 years of proven expertise in leadership, sales, operations, financial analysis, and strategic planning. I empower companies to unlock growth, optimize performance, and prepare for scale or successful exit. Serving as a hands-on strategic partner to founders, boards, and executive teams, I provide specialized expertise for clarity, speed, and tangible results across diverse industries.
-                </p>
-            </div>
-        </section>
+const clientsAndPartners = [
+    "Kum & Go", "Mooyah", "Fazoli’s", "Taco John’s", "Sprinkles Cupcakes", "Bluestone Lane",
+    "The Cheesecake Factory", "Noodles & Co.", "Boston Market", "McDonald’s", "Taco Bell",
+    "Smashburger", "Whole Foods", "The Finish Line", "Compass USA Group", "Aramark", "Domino’s",
+    "Sysco", "Shamrock", "US Foods", "Guckenheimer", "Thomas Cuisine Management", "Costco",
+    "Kroger Brands", "Albertsons", "Harris Teeter", "Target"
+];
 
-        <section id="dashboard" class="mb-12">
-            <h2 class="text-3xl font-bold text-slate-800 mb-6 text-center">Key Career Metrics</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="metric-card bg-white p-6 rounded-xl shadow-lg border border-slate-200 text-center">
-                    <p class="text-4xl font-extrabold text-blue-600">$0 → $2M</p>
-                    <p class="text-slate-500 mt-2 font-medium">Profitable Startup Growth <br/> (in <18 Months)</p>
-                </div>
-                <div class="metric-card bg-white p-6 rounded-xl shadow-lg border border-slate-200 text-center">
-                    <p class="text-4xl font-extrabold text-blue-600">98.7%</p>
-                    <p class="text-slate-500 mt-2 font-medium">Client Retention Rate</p>
-                </div>
-                <div class="metric-card bg-white p-6 rounded-xl shadow-lg border border-slate-200 text-center">
-                    <p class="text-4xl font-extrabold text-blue-600">3+ Years</p>
-                    <p class="text-slate-500 mt-2 font-medium">Consistently $1M+ Annual Sales</p>
-                </div>
-                <div class="metric-card bg-white p-6 rounded-xl shadow-lg border border-slate-200 text-center">
-                    <p class="text-4xl font-extrabold text-blue-600">20%</p>
-                    <p class="text-slate-500 mt-2 font-medium">YOY Growth for $300M Co.</p>
-                </div>
-            </div>
-        </section>
+const education = {
+    school: "Millikin University",
+    degree: "Bachelor of Science, Finance",
+    dates: "2000 - 2004",
+    note: "CCIW Champion in Men’s Soccer"
+};
 
-        <section id="career" class="mb-12">
-             <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Career Path & Achievements</h2>
-             <p class="text-lg text-slate-600 mb-6 leading-relaxed text-center">My career is marked by a consistent ability to **go above and beyond** core responsibilities, driving significant impact through proactive leadership, strategic initiatives, and operational excellence. Explore my professional journey and key contributions below.</p>
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
-                <div id="timeline-container" class="md:col-span-4">
-                    <!-- Timeline will be generated by JS -->
-                </div>
-                <div class="md:col-span-8 bg-white p-8 rounded-xl shadow-lg border border-slate-200">
-                    <div id="experience-details">
-                        <!-- Experience details will be loaded here by JS -->
-                        <p class="text-slate-500 text-center py-16">Select a company from the timeline to view details.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
+const certifications = [
+    "Foundations of Gap Selling (Certified)",
+    "Strategic Selling (Miller Heiman)",
+    "Top-Ten Sales Skills of Elite Salespeople (Asher Strategies)",
+    "Building the Skillset of a Highly Successful CFO (CFO Dive)",
+    "Creative Problem Solving (Coursera)",
+    "Learning Microsoft 365 Copilot (December 2023)"
+];
 
-        <section id="industries" class="bg-white p-8 rounded-xl shadow-lg border border-slate-200 mb-12">
-            <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Industries Impacted</h2>
-            <p class="text-lg text-slate-600 mb-6 leading-relaxed text-center">My expertise spans a diverse range of industries, allowing me to quickly understand unique market dynamics and deliver tailored solutions.</p>
-            <div id="industries-list" class="flex flex-wrap justify-center gap-3">
-                <!-- Industries will be generated by JS -->
-            </div>
-        </section>
+const strategicAchievements = [
+    "Instrumental in building a Pro Cloud SaaS startup from $0 to $2M in ARR in the first year, achieving profitability and building all foundational business infrastructure.",
+    "Drove strategic sales and competitive positioning to consistently achieve and exceed multi-million-dollar quotas (President's Club 2015, Company MVP 2010 & 2016), exceeding 105% of revenue targets for 3 consecutive years.",
+    "Drove strategic financial planning and resource allocation for a $300M company, leveraging advanced analytics to lead pricing and marketing spend strategies that resulted in 20% Year-over-Year growth.",
+    "Consistently generated over $2M annually in pipeline with 2:1 ratios through meticulous, thoughtful email and LinkedIn outreach. Consistently landed $1M+ in new business and expansion revenue annually.",
+    "Managed a $1M ARR portfolio of existing clients, achieving a 98.7% retention rate over 2 years and growing account bases by 30% through expansion efforts.",
+    "Restructured a print marketing and manufacturing organization, increasing revenue per order by 39% and margin by 23% in under 6 months.",
+    "Collaborated with product teams to design and launch new software, executing a strategic go-to-market plan for a 25-state territory that generated $100K in ARR."
+];
 
-        <section id="clients" class="bg-white p-8 rounded-xl shadow-lg border border-slate-200 mb-12">
-            <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Key Clients & Partnerships</h2>
-            <p class="text-lg text-slate-600 mb-6 leading-relaxed text-center">I have built and nurtured relationships with leading organizations and strategic partners across various sectors, driving mutual success.</p>
-            <div id="clients-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <!-- Clients will be generated by JS -->
-            </div>
-        </section>
+function getConciseResumeText() {
+    let text = "Brett Linn's Resume Summary:\n";
+    text += "Highly accomplished Senior Executive with over 20 years in leadership, sales, operations, financial analysis, and strategic planning. Proven expertise in driving revenue growth, optimizing performance, and executing market expansion.\n\n";
+    text += "Key Strategic Achievements & Business Impact:\n";
+    strategicAchievements.forEach(achievement => {
+        text += "• " + achievement.replace(/<strong>|<\/strong>/g, '') + "\n";
+    });
 
-        <section id="skills" class="bg-white p-8 rounded-xl shadow-lg border border-slate-200 mb-12">
-            <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Core Competencies & Driving Traits</h2>
-            <div class="clearfix">
-                <div class="skills-chart-wrapper">
-                    <canvas id="skillsChart"></canvas>
-                </div>
-                <p class="text-lg text-slate-600 mb-4 leading-relaxed">
-                    My career success is fueled by a powerful synergy between honed professional competencies and inherent personality traits. This visualization highlights my core domains, while the details below illustrate how my strategic, decisive, and adaptable nature consistently drives exceptional results.
-                </p>
-                <p class="text-lg text-slate-600 mb-6 leading-relaxed">
-                    As an ENTJ, I embody natural leadership, strategic foresight, and a relentless drive for achievement. My highly logical and agile thinking allows me to dissect complex business problems and engineer efficient solutions. This is coupled with a strong inner drive and high conscientiousness, ensuring meticulous execution and consistent quota overachievement. My adaptability and intellectual curiosity enable rapid learning and seamless navigation of fast-changing markets and technical products. Even under pressure, my composure and emotional stability ensure clear decision-making and resilience, while my sociable and assertive nature fosters strong C-level relationships and cross-functional influence.
-                </p>
-            </div>
-            <div class="flex flex-wrap gap-3 justify-center md:justify-start mt-4">
-                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Strategic Leadership</span>
-                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Revenue Growth & Sales Strategy</span>
-                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Operational Efficiency & Process Optimization</span>
-                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Channel & Partner Development</span>
-                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Financial Analysis & Business Acumen</span>
-                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Complex Deal Negotiation</span>
-                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Data-Driven Decision Making</span>
-                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Startup Scaling & Infrastructure Build</span>
-                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Cross-Functional Influence</span>
-                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">CRM & Sales Tech Implementation</span>
-                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Market & Territory Expansion</span>
-                <span class="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Client Retention & Expansion</span>
-            </div>
-        </section>
+    text += "\nProfessional Experience Highlights:\n";
+    for (const company in resumeData) {
+        const data = resumeData[company];
+        text += `- ${company} (${data.role}, ${data.dates}): `;
+        text += data.achievements[0].replace(/<strong>|<\/strong>/g, '') + "...\n";
+    }
+    return text;
+}
 
-        <section id="ai-alignment" class="bg-white p-8 rounded-xl shadow-lg border border-slate-200">
-            <h2 class="text-3xl font-bold text-slate-800 mb-6 text-center">✨ AI-Powered Resume Alignment ✨</h2>
-            <p class="text-lg text-slate-600 mb-6 leading-relaxed text-center">Paste a job description below to see how my resume aligns with the role's requirements. This tool provides a quick analysis to help understand the fit.</p>
-            <div class="flex flex-col gap-4">
-                <textarea id="jobDescriptionInput" class="w-full p-4 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 h-48 text-slate-700" placeholder="Paste the job description here..."></textarea>
-                <button id="analyzeButton" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-200 ease-in-out self-center">Analyze Alignment</button>
-                <div id="loadingIndicator" class="hidden flex justify-center items-center py-4">
-                    <div class="loading-spinner"></div>
-                    <p class="ml-3 text-slate-600">Analyzing...</p>
-                </div>
-                <div id="alignmentResult" class="mt-6 p-6 bg-slate-50 border border-slate-200 rounded-lg min-h-[100px] text-slate-700 whitespace-pre-wrap">
-                    Your AI alignment analysis will appear here.
-                </div>
-            </div>
-        </section>
+const App = () => {
+    const [activeCompany, setActiveCompany] = useState(Object.keys(resumeData)[0]);
+    const [jobDescription, setJobDescription] = useState('');
+    const [alignmentResult, setAlignmentResult] = useState('Your AI alignment analysis will appear here.');
+    const [isLoading, setIsLoading] = useState(false);
+    const chartRef = React.useRef(null);
+    const chartInstanceRef = React.useRef(null);
 
-    </main>
-    
-    <footer class="bg-slate-800 text-white mt-12">
-        <div class="container mx-auto px-6 py-4 text-center text-slate-400">
-            <p>&copy; 2025 Brett Linn | Interactive Resume</p>
-        </div>
-    </footer>
-
-    <script>
-        const resumeData = {
-            "The Hinesight Group": {
-                role: "Managing Partner & Fractional CFO",
-                dates: "07/2022 - Present",
-                achievements: [
-                    "As a Strategic Leader and Fractional CFO within a boutique consulting firm, pitched to clients and executed objectives, focusing on strategic results through a self-developed 5-Lens Approach.",
-                    "Led a fractional executive role at Pro Cloud SaaS (VAR), building the business infrastructure (finance, ops, sales strategy, fundraising). Grew the company from <strong>$0 to $2M in ARR in the first year</strong>.",
-                    "Raised over <strong>$400K through angel investors</strong> by building compelling decks and financial models.",
-                    "Transformed a retail furniture company, reducing inventory by <strong>12% ($100K savings)</strong> and cutting credit card processing costs by <strong>$50K</strong>.",
-                    "Restructured a print manufacturing organization, increasing <strong>revenue per order by 39% and margin by 23%</strong> in under 6 months."
-                ]
-            },
-            "Bite": {
-                role: "Account Manager",
-                dates: "09/2020 - 07/2022",
-                achievements: [
-                    "Managed a <strong>$1M ARR portfolio</strong> of existing clients, achieving a <strong>98.7% retention rate</strong> over 2 years.",
-                    "Grew account base by <strong>30% through expansion efforts</strong>, growing MRR by over <strong>50%</strong> with key accounts like Kum & Go and Taco John’s.",
-                    "Drove client implementation and growth from pilot to launch, expansion, and renewals.",
-                    "Built an ROI calculator to demonstrate a <strong>20% increase in digital ordering</strong> vs. cashier.",
-                    "Built and maintained company dashboards in Salesforce for C-suite, identifying and recovering <strong>$5K in monthly under-billing</strong>.",
-                    "Mentored 2 BDRs, enhancing booked meetings by <strong>7.3% within 3 months</strong>."
-                ]
-            },
-            "Wisely": {
-                role: "Enterprise Sales Executive & Lead",
-                dates: "11/2018 - 06/2019",
-                achievements: [
-                    "Exceeded revenue targets, achieving <strong>101% of sales quota within 10 months</strong> by targeting new business in the hospitality market.",
-                    "Closed the <strong>2nd largest deal in company history</strong> within the first 90 days.",
-                    "Created the new sales rep on-boarding process, <strong>reducing ramp time by 4 weeks</strong>.",
-                    "Launched CRM (Salesforce) and implemented Gong.io, streamlining sales processes.",
-                    "Developed a pilot & rollout process, leading to a <strong>10% reduction in customer churn</strong>."
-                ]
-            },
-            "Harri": {
-                role: "Enterprise Sales Executive",
-                dates: "03/2018 - 11/2018",
-                achievements: [
-                    "Established a <strong>25-state territory</strong> through strategic market analysis (TAM vs. SAM vs. SOM).",
-                    "Prospected and secured meetings with key targets including The Cheesecake Factory and Noodles & Co., resulting in <strong>2 RFPs</strong>.",
-                    "Was the only sales rep (of 10) to collaborate with marketing to create more efficient content and messaging."
-                ]
-            },
-            "Synergy Suite": {
-                role: "Strategic Sales Executive",
-                dates: "11/2017 - 03/2018",
-                achievements: [
-                    "Focused heavily on top-of-funnel sales prospecting, building over <strong>$250K in pipeline in 5 months</strong>.",
-                    "Built out territory alignments and identified key prospects by analyzing total available vs. serviceable markets."
-                ]
-            },
-            "Fourth (formerly HotSchedules)": {
-                role: "Senior Enterprise & Mid-Market Lead Executive",
-                dates: "01/2014 - 11/2017",
-                achievements: [
-                    "Exceeded <strong>105% of revenue targets for 3 consecutive years</strong>, selling over <strong>$1M in ARR annually</strong>.",
-                    "Achieved quota with <strong>80% from new logo acquisition</strong> and 20% from expansion.",
-                    "Won <strong>President's Club (2015)</strong> and <strong>Company MVP (2016)</strong> awards for outstanding performance.",
-                    "Promoted to Sr. Lead Exec in 18 months.",
-                    "Collaborated with product teams to launch new software, generating <strong>$100K in new ARR</strong>."
-                ]
-            },
-            "The Original Cakerie": {
-                role: "Regional Channel Manager",
-                dates: "10/2012 - 08/2013",
-                achievements: [
-                    "Spearheaded the company's entry into the U.S. foodservice market.",
-                    "Transitioned to a national channel partner model, achieving <strong>97% of plan</strong> in 6 months.",
-                    "Trained partners across an 18-state territory and negotiated programs with major distributors like Sysco and US Foods."
-                ]
-            },
-            "Aryzta, LLC": {
-                role: "Sr. Strategy Analyst; Regional Channel Manager",
-                dates: "11/2007 - 10/2012",
-                achievements: [
-                    "As Sr. Strategy Analyst, partnered with sales on pricing and forecasting to achieve <strong>20% company YOY growth</strong>.",
-                    "Received the <strong>2010 La Brea Bakery Employee of the Year</strong> award.",
-                    "As Regional Channel Manager, achieved <strong>108% of forecast</strong> in the first year and placed <strong>2nd of 50 markets</strong> for a new product launch.",
-                    "Led new product placement success at Target, resulting in <strong>112% of forecast</strong>."
-                ]
-            },
-             "AIT Worldwide Logistics": {
-                role: "Financial Analyst",
-                dates: "01/2005 - 10/2007",
-                achievements: [
-                    "Promoted to Financial Analyst after 12 months in Accounts Payable.",
-                    "Implemented the Concur expense reporting system for over 50 employees, <strong>reducing payment time by over a month</strong>.",
-                    "Served as an internal consultant on the AIT Station Team, providing in-depth financial analysis to franchisees.",
-                    "Co-managed financial reporting and month-end close for 12+ locations and the corporate office."
-                ]
-            }
-        };
-
-        // Data for new sections
-        const industries = [
-            "SaaS", "Value-Added Resellers (VAR)", "Retail", "Manufacturing", "Marketing",
-            "Foodservice & Hospitality", "Logistics", "Cybersecurity", "Managed IT Services (MSP)",
-            "Cloud Migrations", "HR & Workforce Management", "Customer Intelligence", "Inventory Management",
-            "Financial Services", "Consumer Packaged Goods (CPG)"
-        ];
-
-        const clientsAndPartners = [
-            "Kum & Go", "Mooyah", "Fazoli’s", "Taco John’s", "Sprinkles Cupcakes", "Bluestone Lane",
-            "The Cheesecake Factory", "Noodles & Co.", "Boston Market", "McDonald’s", "Taco Bell",
-            "Smashburger", "Whole Foods", "The Finish Line", "Compass USA Group", "Aramark", "Domino’s",
-            "Sysco", "Shamrock", "US Foods", "Guckenheimer", "Thomas Cuisine Management", "Costco",
-            "Kroger Brands", "Albertsons", "Harris Teeter", "Target"
-        ];
-
-
-        function getConciseResumeText() {
-            let text = "Brett Linn's Resume Summary:\n";
-            text += "Highly accomplished Senior Executive with over 20 years in leadership, sales, operations, financial analysis, and strategic planning. Proven expertise in driving revenue growth, optimizing performance, and executing market expansion.\n\n";
-            text += "Key Strategic Achievements & Business Impact:\n";
-            text += "• Grew a SaaS startup from $0 to $2M ARR in <18 months, achieving profitability.\n";
-            text += "• Consistently exceeded multi-million dollar quotas (President's Club, MVP), selling over $1M ARR annually for 3+ years.\n";
-            text += "• Drove 20% YOY growth for a $300M company through strategic financial planning.\n";
-            text += "• Managed $1M ARR client portfolio with 98.7% retention, growing accounts by 30% and MRR by 50%.\n";
-            text += "• Consistently generated over $2M annually in pipeline with 2:1 ratios, landing $1M+ in new business and expansion revenue annually.\n";
-            text += "• Reduced inventory by 12% ($100K savings) and cut CC processing by $50K.\n";
-            text += "• Streamlined expense reporting, reducing payment time by over a month.\n";
-            text += "• Collaborated on new software launch, generating $100K in new ARR.\n\n";
-
-            text += "Professional Experience Highlights:\n";
-            for (const company in resumeData) {
-                const data = resumeData[company];
-                text += `- ${company} (${data.role}, ${data.dates}): `;
-                // Take the first achievement, remove HTML tags for LLM context
-                text += data.achievements[0].replace(/<strong>|<\/strong>/g, '') + "...\n";
-            }
-            return text;
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const timelineContainer = document.getElementById('timeline-container');
-            const experienceDetails = document.getElementById('experience-details');
-            const jobDescriptionInput = document.getElementById('jobDescriptionInput');
-            const analyzeButton = document.getElementById('analyzeButton');
-            const loadingIndicator = document.getElementById('loadingIndicator');
-            const alignmentResult = document.getElementById('alignmentResult');
-            const industriesListContainer = document.getElementById('industries-list');
-            const clientsListContainer = document.getElementById('clients-list');
-
-
-            const companies = Object.keys(resumeData);
-
-            companies.forEach((company, index) => {
-                const item = document.createElement('div');
-                item.className = 'timeline-item cursor-pointer';
-                item.dataset.company = company;
-                
-                let html = `<div class="timeline-dot"></div>`;
-                html += `<p class="company-name text-lg font-medium text-slate-600 mb-1">${company}</p>`;
-                html += `<p class="text-sm text-slate-500">${resumeData[company].role}</p>`;
-                html += `<p class="text-xs text-slate-400">${resumeData[company].dates}</p>`;
-                
-                item.innerHTML = html;
-                timelineContainer.appendChild(item);
-            });
-
-            const timelineItems = document.querySelectorAll('.timeline-item');
-            
-            timelineItems.forEach(item => {
-                item.addEventListener('click', () => {
-                    timelineItems.forEach(i => i.classList.remove('active'));
-                    item.classList.add('active');
-                    
-                    const company = item.dataset.company;
-                    const data = resumeData[company];
-                    
-                    let detailsHtml = `<h3 class="text-2xl font-bold text-slate-800">${company}</h3>`;
-                    detailsHtml += `<p class="text-md font-semibold text-blue-600 mb-1">${data.role}</p>`;
-                    detailsHtml += `<p class="text-sm text-slate-400 mb-6">${data.dates}</p>`;
-                    detailsHtml += '<ul class="space-y-4 list-disc list-inside text-slate-600">';
-                    data.achievements.forEach(ach => {
-                        detailsHtml += `<li>${ach}</li>`;
-                    });
-                    detailsHtml += '</ul>';
-                    
-                    experienceDetails.innerHTML = detailsHtml;
-                });
-            });
-
-            if (timelineItems.length > 0) {
-                timelineItems[0].click();
+    useEffect(() => {
+        if (chartRef.current) {
+            if (chartInstanceRef.current) {
+                chartInstanceRef.current.destroy();
             }
 
-            const ctx = document.getElementById('skillsChart').getContext('2d');
-            new Chart(ctx, {
+            const ctx = chartRef.current.getContext('2d');
+            chartInstanceRef.current = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: ['Direct Sales', 'Strategy & Ops', 'Channel Development', 'Finance & Analysis'],
@@ -474,37 +222,26 @@
                     cutout: '60%'
                 }
             });
+        }
 
-            // Populate Industries
-            industries.forEach(industry => {
-                const span = document.createElement('span');
-                span.className = 'bg-slate-100 text-slate-700 text-sm font-medium px-4 py-2 rounded-full shadow-sm hover:bg-slate-200 transition-colors duration-150';
-                span.textContent = industry;
-                industriesListContainer.appendChild(span);
-            });
+        return () => {
+            if (chartInstanceRef.current) {
+                chartInstanceRef.current.destroy();
+            }
+        };
+    }, []);
 
-            // Populate Clients
-            clientsAndPartners.forEach(client => {
-                const div = document.createElement('div');
-                div.className = 'bg-slate-50 p-4 rounded-lg shadow-sm border border-slate-200 text-center font-medium text-slate-700 hover:bg-slate-100 transition-colors duration-150';
-                div.textContent = client;
-                clientsListContainer.appendChild(div);
-            });
+    const handleAnalyze = async () => {
+        if (!jobDescription) {
+            setAlignmentResult("Please paste a job description to analyze.");
+            return;
+        }
 
+        setIsLoading(true);
+        setAlignmentResult(''); // Clear previous result
 
-            // LLM Integration
-            analyzeButton.addEventListener('click', async () => {
-                const jobDescription = jobDescriptionInput.value.trim();
-                if (!jobDescription) {
-                    alignmentResult.textContent = "Please paste a job description to analyze.";
-                    return;
-                }
-
-                loadingIndicator.classList.remove('hidden');
-                alignmentResult.textContent = ''; // Clear previous result
-
-                const conciseResume = getConciseResumeText();
-                const prompt = `As a hiring manager or recruiter, analyze the following resume against the provided job description. Highlight key strengths and relevant experiences from the resume that directly align with the job requirements. Also, identify any areas where the resume could be further tailored or where there might be a perceived gap (if any). Be concise and professional.
+        const conciseResume = getConciseResumeText();
+        const prompt = `As a hiring manager or recruiter, analyze the following resume against the provided job description. Highlight key strengths and relevant experiences from the resume that directly align with the job requirements. Also, identify any areas where the resume could be further tailored or where there might be a perceived gap (if any). Be concise and professional.
 
 Resume:\n${conciseResume}
 
@@ -512,54 +249,336 @@ Job Description:\n${jobDescription}
 
 Analysis:`;
 
-                let chatHistory = [];
-                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-                const payload = { contents: chatHistory };
-                const apiKey = "AIzaSyBrTmBYEvvg5-xvDfDi14xM14u3hhg-fi4";
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+        let chatHistory = [];
+        chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+        const payload = { contents: chatHistory };
+        const apiKey = "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
-                let retries = 0;
-                const maxRetries = 5;
-                const baseDelay = 1000; // 1 second
+        let retries = 0;
+        const maxRetries = 5;
+        const baseDelay = 1000;
 
-                while (retries < maxRetries) {
-                    try {
-                        const response = await fetch(apiUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
-                        });
+        while (retries < maxRetries) {
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-                        if (response.status === 429) { // Too Many Requests
-                            const delay = baseDelay * Math.pow(2, retries) + Math.random() * 1000;
-                            retries++;
-                            await new Promise(res => setTimeout(res, delay));
-                            continue;
-                        }
+                if (response.status === 429) {
+                    const delay = baseDelay * Math.pow(2, retries) + Math.random() * 1000;
+                    retries++;
+                    await new Promise(res => setTimeout(res, delay));
+                    continue;
+                }
 
-                        const result = await response.json();
-                        if (result.candidates && result.candidates.length > 0 &&
-                            result.candidates[0].content && result.candidates[0].content.parts &&
-                            result.candidates[0].content.parts.length > 0) {
-                            alignmentResult.textContent = result.candidates[0].content.parts[0].text;
-                        } else {
-                            alignmentResult.textContent = "Could not generate analysis. Please try again.";
-                        }
-                        break; // Exit loop on success
-                    }
-                    catch (error) {
-                        retries++;
-                        if (retries === maxRetries) {
-                            alignmentResult.textContent = "An error occurred during analysis. Please try again later.";
-                        } else {
-                            const delay = baseDelay * Math.pow(2, retries) + Math.random() * 1000;
-                            await new Promise(res => setTimeout(res, delay));
-                        }
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    setAlignmentResult(result.candidates[0].content.parts[0].text);
+                } else {
+                    setAlignmentResult("Could not generate analysis. Please try again.");
+                }
+                break;
+            } catch (error) {
+                retries++;
+                if (retries === maxRetries) {
+                    setAlignmentResult("An error occurred during analysis. Please try again later.");
+                } else {
+                    const delay = baseDelay * Math.pow(2, retries) + Math.random() * 1000;
+                    await new Promise(res => setTimeout(res, delay));
+                }
+            }
+        }
+        setIsLoading(false);
+    };
+
+    const handleTimelineClick = (company) => {
+        setActiveCompany(company);
+    };
+
+    return (
+        <div className="min-h-screen bg-slate-50 font-sans antialiased text-slate-700">
+            <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+                body {
+                    font-family: 'Inter', sans-serif;
+                    background-color: #f8fafc;
+                }
+                .metric-card {
+                    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+                }
+                .metric-card:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+                }
+                .timeline-item {
+                    position: relative;
+                    padding-left: 2rem;
+                    padding-bottom: 2rem;
+                    border-left: 2px solid #e2e8f0;
+                }
+                .timeline-item:last-child {
+                    border-left: 2px solid transparent;
+                    padding-bottom: 0;
+                }
+                .timeline-dot {
+                    position: absolute;
+                    left: -0.5rem;
+                    top: 0.25rem;
+                    height: 1rem;
+                    width: 1rem;
+                    border-radius: 9999px;
+                    background-color: #cbd5e1;
+                    border: 2px solid white;
+                    transition: background-color 0.2s ease-in-out;
+                }
+                .timeline-item.active .timeline-dot {
+                    background-color: #3b82f6;
+                }
+                .timeline-item.active .company-name {
+                    color: #1e40af;
+                    font-weight: 600;
+                }
+                .skills-chart-wrapper {
+                    position: relative;
+                    width: 100%;
+                    max-width: 600px;
+                    height: 350px;
+                    max-height: 400px;
+                    margin-left: auto;
+                    margin-right: auto;
+                    margin-bottom: 1rem;
+                }
+                @media (min-width: 768px) {
+                    .skills-chart-wrapper {
+                        float: left;
+                        margin-right: 1.5rem;
+                        margin-bottom: 1rem;
+                        max-width: 400px;
+                        margin-left: 0;
                     }
                 }
-                loadingIndicator.classList.add('hidden');
-            });
-        });
-    </script>
-</body>
-</html>
+                .clearfix::after {
+                    content: "";
+                    display: table;
+                    clear: both;
+                }
+                .loading-spinner {
+                    border: 4px solid #f3f3f3;
+                    border-top: 4px solid #3b82f6;
+                    border-radius: 50%;
+                    width: 30px;
+                    height: 30px;
+                    animation: spin 1s linear infinite;
+                }
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `}</style>
+            <header className="bg-white shadow-sm sticky top-0 z-10">
+                <div className="container mx-auto px-6 py-4 flex justify-between items-center">
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-800">Brett Linn</h1>
+                        <p className="text-slate-500">Senior Executive | Strategic Business Partner</p>
+                        <p className="text-sm text-slate-400">
+                            <a href="mailto:brett.linn@gmail.com" className="hover:text-blue-600">brett.linn@gmail.com</a> |
+                            <a href="https://linkedin.com/in/brettlinn" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600">linkedin.com/in/brettlinn</a>
+                        </p>
+                    </div>
+                    <nav className="hidden md:flex space-x-6">
+                        <a href="#dashboard" className="text-slate-600 hover:text-blue-600 font-medium">Dashboard</a>
+                        <a href="#career" className="text-slate-600 hover:text-blue-600 font-medium">Career Path</a>
+                        <a href="#industries" className="text-slate-600 hover:text-blue-600 font-medium">Industries</a>
+                        <a href="#clients" className="text-slate-600 hover:text-blue-600 font-medium">Clients</a>
+                        <a href="#skills" className="text-slate-600 hover:text-blue-600 font-medium">Skills</a>
+                        <a href="#education" className="text-slate-600 hover:text-blue-600 font-medium">Education</a>
+                        <a href="#certifications" className="text-slate-600 hover:text-blue-600 font-medium">Certifications</a>
+                        <a href="#ai-alignment" className="text-slate-600 hover:text-blue-600 font-medium">AI Alignment</a>
+                    </nav>
+                </div>
+            </header>
+
+            <main className="container mx-auto px-6 py-8 md:py-12">
+                <section id="summary" className="mb-12">
+                    <div className="bg-white p-8 rounded-xl shadow-lg border border-slate-200">
+                        <h2 className="text-3xl font-bold text-slate-800 mb-4">Professional Summary</h2>
+                        <p className="text-lg text-slate-600 leading-relaxed">
+                            Highly accomplished and results-driven Senior Executive with over 20 years of proven expertise in leadership, sales, operations, financial analysis, and strategic planning. I empower companies to unlock growth, optimize performance, and prepare for scale or successful exit. Serving as a hands-on strategic partner to founders, boards, and executive teams, I provide specialized expertise for clarity, speed, and tangible results across diverse industries, including SaaS, value-added resellers, retail, manufacturing, marketing, foodservice, and logistics. My comprehensive background enables me to drive revenue growth, enhance operational efficiency, and execute strategic market expansion initiatives.
+                        </p>
+                    </div>
+                </section>
+
+                <section id="dashboard" className="mb-12">
+                    <h2 className="text-3xl font-bold text-slate-800 mb-6 text-center">Key Strategic Achievements & Business Impact</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+                        {strategicAchievements.map((achievement, index) => (
+                            <div key={index} className="metric-card bg-white p-6 rounded-xl shadow-lg border border-slate-200">
+                                <p className="text-lg text-slate-700 leading-relaxed">{achievement}</p>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+                <section id="career" className="mb-12">
+                    <h2 className="text-3xl font-bold text-slate-800 mb-8 text-center">Career Path & Professional Experience</h2>
+                    <p className="text-lg text-slate-600 mb-6 leading-relaxed text-center">My career is marked by a consistent ability to <strong>go above and beyond</strong> core responsibilities, driving significant impact through proactive leadership, strategic initiatives, and operational excellence. Explore my professional journey and key contributions below.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                        <div id="timeline-container" className="md:col-span-4">
+                            {Object.keys(resumeData).map((company) => (
+                                <div
+                                    key={company}
+                                    className={`timeline-item cursor-pointer ${activeCompany === company ? 'active' : ''}`}
+                                    onClick={() => handleTimelineClick(company)}
+                                >
+                                    <div className="timeline-dot"></div>
+                                    <p className="company-name text-lg font-medium text-slate-600 mb-1">{company}</p>
+                                    <p className="text-sm text-slate-500">{resumeData[company].role}</p>
+                                    <p className="text-xs text-slate-400">{resumeData[company].dates}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="md:col-span-8 bg-white p-8 rounded-xl shadow-lg border border-slate-200">
+                            <div id="experience-details">
+                                {activeCompany ? (
+                                    <>
+                                        <h3 className="text-2xl font-bold text-slate-800">{activeCompany}</h3>
+                                        <p className="text-md font-semibold text-blue-600 mb-1">{resumeData[activeCompany].role}</p>
+                                        <p className="text-sm text-slate-400 mb-6">{resumeData[activeCompany].dates}</p>
+                                        <ul className="space-y-4 list-disc list-inside text-slate-600">
+                                            {resumeData[activeCompany].achievements.map((ach, index) => (
+                                                <li key={index} dangerouslySetInnerHTML={{ __html: ach }}></li>
+                                            ))}
+                                        </ul>
+                                    </>
+                                ) : (
+                                    <p className="text-slate-500 text-center py-16">Select a company from the timeline to view details.</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="industries" className="bg-white p-8 rounded-xl shadow-lg border border-slate-200 mb-12">
+                    <h2 className="text-3xl font-bold text-slate-800 mb-8 text-center">Industries Impacted</h2>
+                    <p className="text-lg text-slate-600 mb-6 leading-relaxed text-center">My expertise spans a diverse range of industries, allowing me to quickly understand unique market dynamics and deliver tailored solutions.</p>
+                    <div id="industries-list" className="flex flex-wrap justify-center gap-3">
+                        {industries.map((industry, index) => (
+                            <span key={index} className="bg-slate-100 text-slate-700 text-sm font-medium px-4 py-2 rounded-full shadow-sm hover:bg-slate-200 transition-colors duration-150">
+                                {industry}
+                            </span>
+                        ))}
+                    </div>
+                </section>
+
+                <section id="clients" className="bg-white p-8 rounded-xl shadow-lg border border-slate-200 mb-12">
+                    <h2 className="text-3xl font-bold text-slate-800 mb-8 text-center">Key Clients & Partnerships</h2>
+                    <p className="text-lg text-slate-600 mb-6 leading-relaxed text-center">I have built and nurtured relationships with leading organizations and strategic partners across various sectors, driving mutual success.</p>
+                    <div id="clients-list" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {clientsAndPartners.map((client, index) => (
+                            <div key={index} className="bg-slate-50 p-4 rounded-lg shadow-sm border border-slate-200 text-center font-medium text-slate-700 hover:bg-slate-100 transition-colors duration-150">
+                                {client}
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+                <section id="skills" className="bg-white p-8 rounded-xl shadow-lg border border-slate-200 mb-12">
+                    <h2 className="text-3xl font-bold text-slate-800 mb-8 text-center">Core Competencies & Driving Traits</h2>
+                    <div className="clearfix">
+                        <div className="skills-chart-wrapper">
+                            <canvas ref={chartRef} id="skillsChart"></canvas>
+                        </div>
+                        <p className="text-lg text-slate-600 mb-4 leading-relaxed">
+                            My career success is fueled by a powerful synergy between honed professional competencies and inherent personality traits. This visualization highlights my core domains, while the details below illustrate how my strategic, decisive, and adaptable nature consistently drives exceptional results.
+                        </p>
+                        <p className="text-lg text-slate-600 mb-6 leading-relaxed">
+                            As an ENTJ, I embody natural leadership, strategic foresight, and a relentless drive for achievement. My highly logical and agile thinking allows me to dissect complex business problems and engineer efficient solutions. This is coupled with a strong inner drive and high conscientiousness, ensuring meticulous execution and consistent quota overachievement. My adaptability and intellectual curiosity enable rapid learning and seamless navigation of fast-changing markets and technical products. Even under pressure, my composure and emotional stability ensure clear decision-making and resilience, while my sociable and assertive nature fosters strong C-level relationships and cross-functional influence.
+                        </p>
+                    </div>
+                    <div className="flex flex-wrap gap-3 justify-center md:justify-start mt-4">
+                        <span className="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Strategic Leadership</span>
+                        <span className="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Revenue Growth & Sales Strategy</span>
+                        <span className="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Operational Efficiency & Process Optimization</span>
+                        <span className="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Channel & Partner Development</span>
+                        <span className="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Financial Analysis & Business Acumen</span>
+                        <span className="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Complex Deal Negotiation</span>
+                        <span className="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Data-Driven Decision Making</span>
+                        <span className="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Startup Scaling & Infrastructure Build</span>
+                        <span className="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Cross-Functional Influence</span>
+                        <span className="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">CRM & Sales Tech Implementation</span>
+                        <span className="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Market & Territory Expansion</span>
+                        <span className="bg-blue-100 text-blue-800 text-sm font-medium px-4 py-2 rounded-full">Client Retention & Expansion</span>
+                    </div>
+                </section>
+
+                <section id="education" className="bg-white p-8 rounded-xl shadow-lg border border-slate-200 mb-12">
+                    <h2 className="text-3xl font-bold text-slate-800 mb-8 text-center">Education</h2>
+                    <div className="text-center">
+                        <h3 className="text-xl font-semibold text-slate-700">{education.school}</h3>
+                        <p className="text-lg text-slate-600">{education.degree}</p>
+                        <p className="text-sm text-slate-400 mb-2">{education.dates}</p>
+                        <p className="text-md font-medium text-slate-500">{education.note}</p>
+                    </div>
+                </section>
+
+                <section id="certifications" className="bg-white p-8 rounded-xl shadow-lg border border-slate-200 mb-12">
+                    <h2 className="text-3xl font-bold text-slate-800 mb-8 text-center">Certifications</h2>
+                    <div className="flex flex-wrap justify-center gap-3">
+                        {certifications.map((cert, index) => (
+                             <span key={index} className="bg-blue-50 text-blue-600 text-sm font-medium px-4 py-2 rounded-full shadow-sm">
+                                {cert}
+                            </span>
+                        ))}
+                    </div>
+                </section>
+
+                <section id="ai-alignment" className="bg-white p-8 rounded-xl shadow-lg border border-slate-200">
+                    <h2 className="text-3xl font-bold text-slate-800 mb-6 text-center">✨ AI-Powered Resume Alignment ✨</h2>
+                    <p className="text-lg text-slate-600 mb-6 leading-relaxed text-center">Paste a job description below to see how my resume aligns with the role's requirements. This tool provides a quick analysis to help understand the fit.</p>
+                    <div className="flex flex-col gap-4">
+                        <textarea
+                            id="jobDescriptionInput"
+                            className="w-full p-4 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 h-48 text-slate-700"
+                            placeholder="Paste the job description here..."
+                            value={jobDescription}
+                            onChange={(e) => setJobDescription(e.target.value)}
+                        ></textarea>
+                        <button
+                            id="analyzeButton"
+                            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-200 ease-in-out self-center"
+                            onClick={handleAnalyze}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? 'Analyzing...' : 'Analyze Alignment'}
+                        </button>
+                        {isLoading && (
+                            <div className="flex justify-center items-center py-4">
+                                <div className="loading-spinner"></div>
+                                <p className="ml-3 text-slate-600">Analyzing...</p>
+                            </div>
+                        )}
+                        <div
+                            id="alignmentResult"
+                            className="mt-6 p-6 bg-slate-50 border border-slate-200 rounded-lg min-h-[100px] text-slate-700 whitespace-pre-wrap"
+                        >
+                            {alignmentResult}
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <footer className="bg-slate-800 text-white mt-12">
+                <div className="container mx-auto px-6 py-4 text-center text-slate-400">
+                    <p>&copy; 2025 Brett Linn | Interactive Resume</p>
+                </div>
+            </footer>
+        </div>
+    );
+};
+
+export default App;
